@@ -305,7 +305,15 @@ def GraphMapFeatures(  # pylint: disable=invalid-name
         node_set = graph.nodes[node_set_key]
         updated_nodes[node_set_key] = node_set._replace(
             features=embed_fn(node_set.features))
+#         print("node_set_key: ", node_set_key)
+#         print("node_set: ", node_set)
+#         print("embed_fn: ", embed_fn)
+#         print("embed_fn(node_set.features): ", embed_fn(node_set.features))
+#         print("updated_nodes[node_set_key]: ", updated_nodes[node_set_key])
 
+#     print("graph.nodes: ", graph.nodes)
+#     print("updated_nodes: ", updated_nodes)
+    
     updated_context = graph.context
     if embed_global_fn:
       updated_context = updated_context._replace(

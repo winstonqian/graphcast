@@ -157,12 +157,19 @@ class DeepTypedGraphNet(hk.Module):
                input_graph: typed_graph.TypedGraph) -> typed_graph.TypedGraph:
     """Forward pass of the learnable dynamics model."""
     self._networks_builder(input_graph)
+    # print("input_graph: ", input_graph)
 
     # Embed input features (if applicable).
     latent_graph_0 = self._embed(input_graph)
+    # print("latent_graph_0: ", latent_graph_0)
 
     # Do `m` message passing steps in the latent graphs.
     latent_graph_m = self._process(latent_graph_0)
+    
+    # print("latent_graph_0: ", latent_graph_0)
+    # print("latent_graph_m: ", latent_graph_m)
+    # print("self._output_network: ", self._output_network)
+    # print("self._output(latent_graph_m): ", self._output(latent_graph_m))
 
     # Compute outputs from the last latent graph (if applicable).
     return self._output(latent_graph_m)
@@ -261,6 +268,13 @@ class DeepTypedGraphNet(hk.Module):
         if self._node_output_size else None,)
     self._output_network = typed_graph_net.GraphMapFeatures(
         **output_kwargs)
+    
+    # print("output_kwargs: ", output_kwargs)
+    # print("embed_node_fn: ", _build_update_fns_for_node_types(
+    #         build_mlp, graph_template, "decoder_nodes_", self._node_output_size))
+    # print("build_mlp: ", build_mlp)
+    # print("graph_template: ", graph_template)
+    # print("self._node_output_size: ", self._node_output_size)
 
   def _embed(
       self, input_graph: typed_graph.TypedGraph) -> typed_graph.TypedGraph:
@@ -297,10 +311,11 @@ class DeepTypedGraphNet(hk.Module):
     # with unshared weights, and repeat that `self._num_processor_repetitions`
     # times.
     latent_graph = latent_graph_0
+    # print("latent_graph_0: ", latent_graph_0)
     for unused_repetition_i in range(self._num_processor_repetitions):
       for processor_network in self._processor_networks:
+        # print("processor_network: ", processor_network)
         latent_graph = self._process_step(processor_network, latent_graph)
-
     return latent_graph
 
   def _process_step(
@@ -309,7 +324,9 @@ class DeepTypedGraphNet(hk.Module):
     """Single step of message passing with node/edge residual connections."""
 
     # One step of message passing.
+    # print("latent_graph_prev_k: ", latent_graph_prev_k)
     latent_graph_k = processor_network_k(latent_graph_prev_k)
+    # print("latent_graph_k: ", latent_graph_k)
 
     # Add residuals.
     nodes_with_residuals = {}

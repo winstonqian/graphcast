@@ -47,9 +47,11 @@ def merge_meshes(
      resolution mesh in the hierarchy, and the faces are the join set of the
      faces at all levels of the hierarchy.
   """
-  for mesh_i, mesh_ip1 in itertools.pairwise(mesh_list):
-    num_nodes_mesh_i = mesh_i.vertices.shape[0]
-    assert np.allclose(mesh_i.vertices, mesh_ip1.vertices[:num_nodes_mesh_i])
+  # for mesh_i, mesh_ip1 in itertools.pairwise(mesh_list):
+  #   num_nodes_mesh_i = mesh_i.vertices.shape[0]
+  #   assert np.allclose(mesh_i.vertices, mesh_ip1.vertices[:num_nodes_mesh_i])
+    
+  # print("vertices after merge: ", mesh_list[-1].vertices)
 
   return TriangularMesh(
       vertices=mesh_list[-1].vertices,
@@ -57,7 +59,9 @@ def merge_meshes(
 
 
 def get_hierarchy_of_triangular_meshes_for_sphere(
-    splits: int) -> List[TriangularMesh]:
+    splits: int, pressure_levels: List[int]) -> tuple[List[TriangularMesh], tuple[np.ndarray, np.ndarray, np.ndarray]]:
+# def get_hierarchy_of_triangular_meshes_for_sphere(
+#     splits: int) -> List[TriangularMesh]:
   """Returns a sequence of meshes, each with triangularization sphere.
 
   Starting with a regular icosahedron (12 vertices, 20 faces, 30 edges) with
@@ -80,15 +84,80 @@ def get_hierarchy_of_triangular_meshes_for_sphere(
            the vertices adjacent to the face. Always with positive orientation
            (counterclock-wise when looking from the outside).
   """
+#   current_mesh = get_icosahedron()
+#   output_meshes = [current_mesh]
+#   for _ in range(splits):
+#     current_mesh = _two_split_unit_sphere_triangle_faces(current_mesh)
+#     output_meshes.append(current_mesh)
+
+#   # output_meshes[-1] = TriangularMesh(vertices = np.concatenate((output_meshes[-1].vertices, [[0, 0.9, np.sqrt(1-0.9**2)]]), axis=0), faces=output_meshes[-1].faces)
+#   # output_meshes[-1] = TriangularMesh(vertices = np.concatenate((output_meshes[-1].vertices, [[0, 2, 0]]), axis=0), faces=output_meshes[-1].faces)
+#   # output_meshes[-1] = TriangularMesh(vertices = np.concatenate((output_meshes[-1].vertices, [[0, -2, 0]]), axis=0), faces=output_meshes[-1].faces)
+
+#   return output_meshes
+
+  process_meshes = []
+  level_meshes = []
+  output_meshes = []
+#   for radius in range(1, len(pressure_levels) + 1):
+#     current_mesh = get_icosahedron(radius)
+#     process_meshes.append(current_mesh)
+
+#   vertices = np.concatenate([mesh.vertices for mesh in process_meshes], axis=0)
+#   faces = np.concatenate([mesh.faces for mesh in process_meshes], axis=0)
+#   output_meshes.append(TriangularMesh(vertices=vertices, faces=faces))
+
+#   for _ in range(splits):
+#     for i in range(len(process_meshes)):
+#       num_previous_vertices = len(process_meshes[i].vertices)
+#       process_meshes[i] = _two_split_unit_sphere_triangle_faces(process_meshes[i])
+#       process_meshes[i].vertices[num_previous_vertices:] = process_meshes[i].vertices[num_previous_vertices:] * (i+1)
+#       new_faces = process_meshes[i].faces + 42 * ((i+1) - 1)
+#       process_meshes[i] = TriangularMesh(vertices=process_meshes[i].vertices, faces=new_faces)
+#     vertices = np.concatenate([mesh.vertices for mesh in process_meshes], axis=0)
+#     faces = np.concatenate([mesh.faces for mesh in process_meshes], axis=0)
+#     output_meshes.append(TriangularMesh(vertices=vertices, faces=faces))
+    
   current_mesh = get_icosahedron()
-  output_meshes = [current_mesh]
+
   for _ in range(splits):
     current_mesh = _two_split_unit_sphere_triangle_faces(current_mesh)
-    output_meshes.append(current_mesh)
-  return output_meshes
+    process_meshes.append(current_mesh)
 
+  level_meshes.append(process_meshes[-1])
+    
+  for i in range(2, len(pressure_levels) + 1):
+    new_vertices = process_meshes[-1].vertices * i
+    new_faces = process_meshes[-1].faces + len(process_meshes[-1].vertices) * (i-1)
+    print("len(process_meshes[-1].vertices): ", len(process_meshes[-1].vertices))
+    level_meshes.append(TriangularMesh(vertices=new_vertices, faces=new_faces))
+  
+  vertices = np.concatenate([mesh.vertices for mesh in level_meshes], axis=0)
+  faces = np.concatenate([mesh.faces for mesh in level_meshes], axis=0)
+  output_meshes.append(TriangularMesh(vertices=vertices, faces=faces))
+  print("len(level_meshes): ", len(level_meshes))
+  print("output_meshes: ", output_meshes)
+  print("len(output_meshes[-1].vertices): ", len(output_meshes[-1].vertices))
+    
+  senders = []
+  receivers = []
+  vertex_offsets = np.cumsum([0] + [mesh.vertices.shape[0] for mesh in level_meshes[:-1]])
+  for i in range(len(level_meshes) - 1):
+    num_vertices = level_meshes[i].vertices.shape[0]
+    for vertex_index in range(num_vertices):
+      senders.append(vertex_index + vertex_offsets[i])
+      receivers.append(vertex_index + vertex_offsets[i + 1])
+        
+  inter_mesh_edges = (np.array(senders), np.array(receivers))
+
+  # print("vertices after merge: ", output_meshes[-1].vertices)
+  print("inter_mesh_edges: ", inter_mesh_edges)
+    
+  # return output_meshes, inter_mesh_edges, process_meshes[0]
+  return output_meshes, inter_mesh_edges, process_meshes[-1]
 
 def get_icosahedron() -> TriangularMesh:
+# def get_icosahedron(radius: int) -> TriangularMesh:
   """Returns a regular icosahedral mesh with circumscribed unit sphere.
 
   See https://en.wikipedia.org/wiki/Regular_icosahedron#Cartesian_coordinates
@@ -117,6 +186,7 @@ def get_icosahedron() -> TriangularMesh:
 
   vertices = np.array(vertices, dtype=np.float32)
   vertices /= np.linalg.norm([1., phi])
+  # vertices *= radius
 
   # I did this manually, checking the orientation one by one.
   faces = [(0, 1, 2),
@@ -207,6 +277,7 @@ def _two_split_unit_sphere_triangle_faces(
                       [ind31, ind23, ind3],  # 3
                       [ind12, ind23, ind31],  # 4
                       ])
+    
   return TriangularMesh(vertices=new_vertices_builder.get_all_vertices(),
                         faces=np.array(new_faces, dtype=np.int32))
 
@@ -278,4 +349,17 @@ def faces_to_edges(faces: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
   assert faces.shape[-1] == 3
   senders = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
   receivers = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+
+#   senders = np.concatenate((senders, [15]))
+#   receivers = np.concatenate((receivers, [42]))
+
+#   senders = np.concatenate((senders, [37]))
+#   receivers = np.concatenate((receivers, [43]))
+
+#   senders = np.concatenate((senders, [42]))
+#   receivers = np.concatenate((receivers, [43]))
+
+  # print("senders: ", senders)
+  # print("receivers: ", receivers)
+    
   return senders, receivers

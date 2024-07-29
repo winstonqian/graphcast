@@ -697,20 +697,53 @@ def stacked_to_dataset(
 
   channels = {name: np.prod(list(unstack_sizes.values()), dtype=np.int64)
               for name, unstack_sizes in unstack_from_channels_sizes.items()}
+
+  print("unstack_from_channels_sizes: ", unstack_from_channels_sizes)
+  print("VAR_NAMES: ", var_names)
+  print("CHANNELS: ", channels)
+  print("found_channels: ", stacked_array[0].sizes["channels"])
+
   total_expected_channels = sum(channels.values())
+  # found_channels = stacked_array[0].sizes["channels"] + 6 * (len(stacked_array) - 1)
   found_channels = stacked_array.sizes["channels"]
   if total_expected_channels != found_channels:
     raise ValueError(
         f"Expected {total_expected_channels} channels but found "
         f"{found_channels}, when trying to convert a stacked array of shape "
-        f"{stacked_array.sizes} to a dataset of shape {template_dataset}.")
+        f"{stacked_array[0].sizes} to a dataset of shape {template_dataset}.")
 
   data_vars = {}
   index = 0
+  # for name in var_names:
+  #   template_var = template_dataset[name]
+  #   if channels[name] > 1:
+  #       total_var = []
+  #       for i in range(len(stacked_array)):
+  #           var = stacked_array[i].isel({"channels": slice(index, index + 1)})
+  #           total_var.append(var)
+  #           index += 1
+  #       var = xarray.concat(total_var, dim="channels")
+  #       print("concat_var: ", var)
+  #       print("slice_var: ", stacked_array[0].isel({"channels": slice(index, index + 2)}))
+  #   else:
+  #       var = stacked_array[0].isel({"channels": slice(index, index + channels[name])})
+  #       index += channels[name]
+  #   var = var.unstack({"channels": unstack_from_channels_sizes[name]})
+  #   var = var.transpose(*template_var.dims)
+  #   data_vars[name] = xarray.DataArray(
+  #       data=var,
+  #       coords=template_var.coords,
+  #       # This might not always be the same as the name it's keyed under; it
+  #       # will refer to the original variable name, whereas the key might be
+  #       # some alias e.g. temperature_850 under which it should be logged:
+  #       name=template_var.name,
+  #   )
   for name in var_names:
     template_var = template_dataset[name]
     var = stacked_array.isel({"channels": slice(index, index + channels[name])})
     index += channels[name]
+    print("unstack_from_channels_sizes[name]: ", unstack_from_channels_sizes[name])
+    "Change it to 1?"
     var = var.unstack({"channels": unstack_from_channels_sizes[name]})
     var = var.transpose(*template_var.dims)
     data_vars[name] = xarray.DataArray(

@@ -63,6 +63,9 @@ def radius_query_indices(
   # [num_grid_points=num_lat_points * num_lon_points, 3]
   grid_positions = _grid_lat_lon_to_coordinates(
       grid_latitude, grid_longitude).reshape([-1, 3])
+  
+  print("grid_positions: ", grid_positions)
+  print("np.shape(grid_positions): ", np.shape(grid_positions))
 
   # [num_mesh_points, 3]
   mesh_positions = mesh.vertices
@@ -82,6 +85,13 @@ def radius_query_indices(
   # [num_edges]
   grid_edge_indices = np.concatenate(grid_edge_indices, axis=0).astype(int)
   mesh_edge_indices = np.concatenate(mesh_edge_indices, axis=0).astype(int)
+
+  print("query_indices: ", query_indices)
+  print("np.shape(query_indices): ", np.shape(query_indices))
+  print("grid_edge_indices: ", grid_edge_indices)
+  print("np.shape(grid_edge_indices): ", np.shape(grid_edge_indices))
+  print("mesh_edge_indices: ", mesh_edge_indices)
+  print("np.shape(mesh_edge_indices): ", np.shape(mesh_edge_indices))
 
   return grid_edge_indices, mesh_edge_indices
 
