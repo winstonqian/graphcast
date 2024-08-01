@@ -129,15 +129,15 @@ def get_hierarchy_of_triangular_meshes_for_sphere(
   for i in range(2, len(pressure_levels) + 1):
     new_vertices = process_meshes[-1].vertices * i
     new_faces = process_meshes[-1].faces + len(process_meshes[-1].vertices) * (i-1)
-    print("len(process_meshes[-1].vertices): ", len(process_meshes[-1].vertices))
+    # print("len(process_meshes[-1].vertices): ", len(process_meshes[-1].vertices))
     level_meshes.append(TriangularMesh(vertices=new_vertices, faces=new_faces))
   
   vertices = np.concatenate([mesh.vertices for mesh in level_meshes], axis=0)
   faces = np.concatenate([mesh.faces for mesh in level_meshes], axis=0)
   output_meshes.append(TriangularMesh(vertices=vertices, faces=faces))
-  print("len(level_meshes): ", len(level_meshes))
-  print("output_meshes: ", output_meshes)
-  print("len(output_meshes[-1].vertices): ", len(output_meshes[-1].vertices))
+  # print("len(level_meshes): ", len(level_meshes))
+  # print("output_meshes: ", output_meshes)
+  # print("len(output_meshes[-1].vertices): ", len(output_meshes[-1].vertices))
     
   senders = []
   receivers = []
@@ -151,7 +151,7 @@ def get_hierarchy_of_triangular_meshes_for_sphere(
   inter_mesh_edges = (np.array(senders), np.array(receivers))
 
   # print("vertices after merge: ", output_meshes[-1].vertices)
-  print("inter_mesh_edges: ", inter_mesh_edges)
+  # print("inter_mesh_edges: ", inter_mesh_edges)
     
   # return output_meshes, inter_mesh_edges, process_meshes[0]
   return output_meshes, inter_mesh_edges, process_meshes[-1]

@@ -403,9 +403,9 @@ class GraphCast(predictor_base.Predictor):
                ) -> xarray.Dataset:
     self._maybe_init(inputs)
     
-    print("inputs: ", inputs)
-    print("targets_template: ", targets_template)
-    print("forcings: ", forcings)
+    # print("inputs: ", inputs)
+    # print("targets_template: ", targets_template)
+    # print("forcings: ", forcings)
 
     # Convert all input data into flat vectors for each of the grid nodes.
     # xarray (batch, time, lat, lon, level, multiple vars, forcings)
@@ -427,12 +427,12 @@ class GraphCast(predictor_base.Predictor):
         # # print("latent_grid_nodes shape: ", np.shape(latent_grid_nodes))
         # print("latent_grid_nodes: ", latent_grid_nodes)
     
-    print("latent_mesh_nodes_list: ", latent_mesh_nodes_list)
-    print("latent_grid_nodes_list: ", latent_grid_nodes_list)
+    # print("latent_mesh_nodes_list: ", latent_mesh_nodes_list)
+    # print("latent_grid_nodes_list: ", latent_grid_nodes_list)
     
     latent_mesh_nodes = jnp.concatenate(latent_mesh_nodes_list, axis=0)
     # print("latent_mesh_nodes shape: ", np.shape(latent_mesh_nodes))
-    print("latent_mesh_nodes: ", latent_mesh_nodes)
+    # print("latent_mesh_nodes: ", latent_mesh_nodes)
          
     # (latent_mesh_nodes, latent_grid_nodes
     #  ) = self._run_grid2mesh_gnn(grid_node_features)
@@ -443,17 +443,17 @@ class GraphCast(predictor_base.Predictor):
     
     '''Combine information of nodes in different layer into one layer of node, so that I can predict split into 2 GNNs for level dependent and level independent output'''
     
-    print("updated_latent_mesh_nodes: ", updated_latent_mesh_nodes)
+    # print("updated_latent_mesh_nodes: ", updated_latent_mesh_nodes)
     
     updated_latent_mesh_nodes_list = np.split(updated_latent_mesh_nodes, len(self._task_config.pressure_levels))
     # print("np.shape(updated_latent_mesh_nodes_list): ", np.shape(updated_latent_mesh_nodes_list))
-    print("updated_latent_mesh_nodes_list: ", updated_latent_mesh_nodes_list)
+    # print("updated_latent_mesh_nodes_list: ", updated_latent_mesh_nodes_list)
     
     updated_latent_mesh_nodes = jnp.concatenate(updated_latent_mesh_nodes_list, axis=-1)
-    print("updated_latent_mesh_nodes: ", updated_latent_mesh_nodes)
+    # print("updated_latent_mesh_nodes: ", updated_latent_mesh_nodes)
     
     latent_grid_nodes = jnp.concatenate(latent_grid_nodes_list, axis=-1) 
-    print("latent_grid_nodes: ", latent_grid_nodes)
+    # print("latent_grid_nodes: ", latent_grid_nodes)
     
     # Transfer data frome the mesh to the grid.
     # [num_grid_nodes, batch, output_size]
@@ -465,8 +465,8 @@ class GraphCast(predictor_base.Predictor):
     output_grid_nodes_independent = self._run_mesh2grid_gnn_level_independent(
         updated_latent_mesh_nodes, latent_grid_nodes)
     
-    print("output_grid_nodes: ", output_grid_nodes)
-    print("output_grid_nodes_independent: ", output_grid_nodes_independent)
+    # print("output_grid_nodes: ", output_grid_nodes)
+    # print("output_grid_nodes_independent: ", output_grid_nodes_independent)
     
 #     output_grid_nodes_list = []
     
@@ -488,7 +488,7 @@ class GraphCast(predictor_base.Predictor):
     # print("output_grid_nodes shape: ", np.shape(output_grid_nodes))
     # print("output_grid_nodes: ", output_grid_nodes)
     
-    print("targets_template: ", targets_template)
+    # print("targets_template: ", targets_template)
     
     
     # Select data variables with 'level' in their dimensions
@@ -496,7 +496,7 @@ class GraphCast(predictor_base.Predictor):
     # Create a new dataset with only the selected data variables
     level_dependent_targets_template = xarray.Dataset(selected_data_vars, coords=targets_template.coords)
     # Display the filtered dataset
-    print("level_dependent_targets_template: ", level_dependent_targets_template)
+    # print("level_dependent_targets_template: ", level_dependent_targets_template)
     
     # Select data variables without 'level' in their dimensions
     selected_data_vars_independent = {var: data for var, data in targets_template.data_vars.items() if 'level' not in data.dims}
@@ -505,23 +505,23 @@ class GraphCast(predictor_base.Predictor):
     # Remove the 'level' dimension from the coordinates
     level_independent_targets_template = level_independent_targets_template.drop_dims('level')
     # Display the filtered dataset
-    print("level_independent_targets_template: ", level_independent_targets_template)
+    # print("level_independent_targets_template: ", level_independent_targets_template)
     
     # Conver output flat vectors for the grid nodes to the format of the output.
     # [num_grid_nodes, batch, output_size] ->
     # xarray (batch, one time step, lat, lon, level, multiple vars)
     
-    print("self._grid_node_outputs_to_prediction(output_grid_nodes, level_dependent_targets_template): ",
-          self._grid_node_outputs_to_prediction(output_grid_nodes, level_dependent_targets_template))
-    print("self._grid_node_outputs_to_prediction(output_grid_nodes, level_independent_targets_template): ",
-          self._grid_node_outputs_to_prediction(output_grid_nodes_independent, level_independent_targets_template))
+    # print("self._grid_node_outputs_to_prediction(output_grid_nodes, level_dependent_targets_template): ",
+    #       self._grid_node_outputs_to_prediction(output_grid_nodes, level_dependent_targets_template))
+    # print("self._grid_node_outputs_to_prediction(output_grid_nodes, level_independent_targets_template): ",
+    #       self._grid_node_outputs_to_prediction(output_grid_nodes_independent, level_independent_targets_template))
     
     # Align the datasets along their shared dimensions
     ds1, ds2 = xarray.align(self._grid_node_outputs_to_prediction(output_grid_nodes, level_dependent_targets_template),
                             self._grid_node_outputs_to_prediction(output_grid_nodes_independent, level_independent_targets_template),
                             join='outer')
-    print("ds1: ", ds1)
-    print("ds2: ", ds2)
+    # print("ds1: ", ds1)
+    # print("ds2: ", ds2)
     
     # Merge the aligned datasets and transpose combined_ds to match the dimension order of targets_template
     combined_ds = xarray.merge([ds1, ds2])
@@ -537,9 +537,9 @@ class GraphCast(predictor_base.Predictor):
     combined_ds_ordered = xarray.Dataset(ordered_data_vars, coords=combined_ds.coords)
 
     # Verify the merged dataset
-    print("combined_ds: ", combined_ds)
-    print("combined_ds_ordered: ", combined_ds_ordered)
-    print("targets_template: ", targets_template)
+    # print("combined_ds: ", combined_ds)
+    # print("combined_ds_ordered: ", combined_ds_ordered)
+    # print("targets_template: ", targets_template)
     
     return combined_ds_ordered
     
@@ -638,10 +638,10 @@ class GraphCast(predictor_base.Predictor):
     senders = grid_indices
     receivers = mesh_indices
     
-    print("np.shape(grid_indices): ", np.shape(grid_indices))
-    print("grid_indices: ", grid_indices)
-    print("np.shape(mesh_indices): ", np.shape(mesh_indices))
-    print("mesh_indices: ", mesh_indices)
+    # print("np.shape(grid_indices): ", np.shape(grid_indices))
+    # print("grid_indices: ", grid_indices)
+    # print("np.shape(mesh_indices): ", np.shape(mesh_indices))
+    # print("mesh_indices: ", mesh_indices)
 
     # Precompute structural node and edge features according to config options.
     # Structural features are those that depend on the fixed values of the
@@ -715,10 +715,10 @@ class GraphCast(predictor_base.Predictor):
         **self._spatial_features_kwargs,
     )
     
-    print("np.shape(senders): ", np.shape(receivers))
-    print("np.shape(receivers): ", np.shape(receivers))
-    print("np.shape(node_features): ", np.shape(node_features))
-    print("np.shape(edge_features): ", np.shape(edge_features))
+    # print("np.shape(senders): ", np.shape(receivers))
+    # print("np.shape(receivers): ", np.shape(receivers))
+    # print("np.shape(node_features): ", np.shape(node_features))
+    # print("np.shape(edge_features): ", np.shape(edge_features))
     # print("node_features: ", node_features)
     # print("edge_features: ", edge_features)
 
@@ -727,8 +727,8 @@ class GraphCast(predictor_base.Predictor):
     
     # merged_mesh = icosahedral_mesh.merge_meshes(self._meshes)
     senders, receivers = icosahedral_mesh.faces_to_edges(self._meshes[-1].faces)
-    print("np.shape(senders): ", np.shape(receivers))
-    print("np.shape(receivers): ", np.shape(receivers))
+    # print("np.shape(senders): ", np.shape(receivers))
+    # print("np.shape(receivers): ", np.shape(receivers))
     
     n_mesh_node = np.array([self._num_mesh_nodes * len(self._task_config.pressure_levels)])
     n_edge = np.array([senders.shape[0]] * len(self._task_config.pressure_levels))
@@ -790,8 +790,8 @@ class GraphCast(predictor_base.Predictor):
     senders = mesh_indices
     receivers = grid_indices
     
-    print("grid_indices: ", grid_indices)
-    print("mesh_indices: ", mesh_indices)
+    # print("grid_indices: ", grid_indices)
+    # print("mesh_indices: ", mesh_indices)
 
     # Precompute structural node and edge features according to config options.
     assert self._mesh_nodes_lat is not None and self._mesh_nodes_lon is not None
@@ -958,10 +958,10 @@ class GraphCast(predictor_base.Predictor):
     grid_nodes = mesh2grid_graph.nodes["grid_nodes"]
     new_mesh_nodes = mesh_nodes._replace(features=updated_latent_mesh_nodes)
     new_grid_nodes = grid_nodes._replace(features=latent_grid_nodes)
-    print("np.shape(updated_latent_mesh_nodes): ", np.shape(updated_latent_mesh_nodes))
-    print("np.shape(latent_grid_nodes): ", np.shape(latent_grid_nodes))
-    print("new_mesh_nodes: ", new_mesh_nodes)
-    print("new_grid_nodes: ", new_grid_nodes)
+    # print("np.shape(updated_latent_mesh_nodes): ", np.shape(updated_latent_mesh_nodes))
+    # print("np.shape(latent_grid_nodes): ", np.shape(latent_grid_nodes))
+    # print("new_mesh_nodes: ", new_mesh_nodes)
+    # print("new_grid_nodes: ", new_grid_nodes)
     mesh2grid_key = mesh2grid_graph.edge_key_by_name("mesh2grid")
     edges = mesh2grid_graph.edges[mesh2grid_key]
 
@@ -969,7 +969,7 @@ class GraphCast(predictor_base.Predictor):
         features=_add_batch_second_axis(
             edges.features.astype(latent_grid_nodes.dtype), batch_size))
 
-    print("new_edges: ", new_edges)
+    # print("new_edges: ", new_edges)
     
     input_graph = mesh2grid_graph._replace(
         edges={mesh2grid_key: new_edges},
@@ -1049,7 +1049,7 @@ class GraphCast(predictor_base.Predictor):
     # xarray `Dataset` (batch, time, lat, lon, level, multiple vars)
     # to xarray `DataArray` (batch, lat, lon, channels)
     
-    print("inputs.sel(level=level): ", [inputs.sel(level=level) for level in self._task_config.pressure_levels])
+    # print("inputs.sel(level=level): ", [inputs.sel(level=level) for level in self._task_config.pressure_levels])
     
     stacked_inputs_list = [
         model_utils.dataset_to_stacked(inputs.sel(level=level))
@@ -1058,8 +1058,8 @@ class GraphCast(predictor_base.Predictor):
     stacked_forcings = model_utils.dataset_to_stacked(forcings)
     
     stacked_inputs = [xarray.concat([item, stacked_forcings], dim="channels") for item in stacked_inputs_list]
-    print("stacked_inputs_list: ", stacked_inputs_list)
-    print("stacked_inputs: ", stacked_inputs)
+    # print("stacked_inputs_list: ", stacked_inputs_list)
+    # print("stacked_inputs: ", stacked_inputs)
     
     # stacked_inputs = model_utils.dataset_to_stacked(inputs)
     # print("stacked_inputs_before: ", stacked_inputs)
@@ -1079,14 +1079,14 @@ class GraphCast(predictor_base.Predictor):
         grid_xarray_lat_lon_leading = model_utils.lat_lon_to_leading_axes(
             stacked_inputs[i])
 
-        print("grid_xarray_lat_lon_leading: ", grid_xarray_lat_lon_leading)
-        print("return: ", xarray_jax.unwrap(grid_xarray_lat_lon_leading.data).reshape(
-            (-1,) + grid_xarray_lat_lon_leading.data.shape[2:]))
+        # print("grid_xarray_lat_lon_leading: ", grid_xarray_lat_lon_leading)
+        # print("return: ", xarray_jax.unwrap(grid_xarray_lat_lon_leading.data).reshape(
+        #     (-1,) + grid_xarray_lat_lon_leading.data.shape[2:]))
         
         input_list.append(xarray_jax.unwrap(grid_xarray_lat_lon_leading.data).reshape(
         (-1,) + grid_xarray_lat_lon_leading.data.shape[2:]))
     
-    print("input_list: ", input_list)
+    # print("input_list: ", input_list)
     
     return input_list
 
@@ -1118,10 +1118,10 @@ class GraphCast(predictor_base.Predictor):
     # for i in range(len(self._task_config.pressure_levels)):
     grid_outputs_lat_lon_leading = grid_node_outputs.reshape(
         grid_shape + grid_node_outputs.shape[1:])
-    print("grid_outputs_lat_lon_leading: ", grid_outputs_lat_lon_leading)
-    print("grid_shape: ", grid_shape)
-    print("grid_node_outputs.shape[1:]: ", grid_node_outputs.shape[1:])
-    print("DIMENSION: ", grid_shape + grid_node_outputs.shape[1:])
+    # print("grid_outputs_lat_lon_leading: ", grid_outputs_lat_lon_leading)
+    # print("grid_shape: ", grid_shape)
+    # print("grid_node_outputs.shape[1:]: ", grid_node_outputs.shape[1:])
+    # print("DIMENSION: ", grid_shape + grid_node_outputs.shape[1:])
     dims = ("lat", "lon", "batch", "channels")
     grid_xarray_lat_lon_leading = xarray_jax.DataArray(
         data=grid_outputs_lat_lon_leading,
@@ -1133,17 +1133,17 @@ class GraphCast(predictor_base.Predictor):
 #     grid_xarray_list_variable = [item.variable for item in grid_xarray_list]
         
 #     print("grid_xarray_list_variable: ", grid_xarray_list_variable)
-    print("grid_xarray: ", grid_xarray)
-    print("grid_xarray.data: ", grid_xarray.data)
-    print("grid_xarray.variable: ", grid_xarray.variable)
-    print("grid_xarray[channel]: ", grid_xarray['channels'])
-    print("targets_template: ", targets_template)
+    # print("grid_xarray: ", grid_xarray)
+    # print("grid_xarray.data: ", grid_xarray.data)
+    # print("grid_xarray.variable: ", grid_xarray.variable)
+    # print("grid_xarray[channel]: ", grid_xarray['channels'])
+    # print("targets_template: ", targets_template)
     
 #     print("model_utils.stacked_to_dataset(grid_xarray.variable, targets_template): ", model_utils.stacked_to_dataset(
 #         grid_xarray_list_variable, targets_template))
     
-    print("model_utils.stacked_to_dataset(grid_xarray.variable, targets_template): ", model_utils.stacked_to_dataset(
-        grid_xarray.variable, targets_template))
+    # print("model_utils.stacked_to_dataset(grid_xarray.variable, targets_template): ", model_utils.stacked_to_dataset(
+    #     grid_xarray.variable, targets_template))
     
     # xarray `DataArray` (batch, lat, lon, channels)
     # to xarray `Dataset` (batch, one time step, lat, lon, level, multiple vars)
